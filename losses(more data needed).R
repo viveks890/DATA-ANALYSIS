@@ -1,0 +1,51 @@
+library(readr)
+z1<-read.csv("D:\\DATA ANALYSIS\\EXCEL SHEETS\\loss(driving).csv")
+#View(z1)
+names(z1)
+z2<-subset(z1,select = -c(Policy_Number,Age,Married,Gender,Fuel_Type))
+skew(z2$Years_of_Driving_Experience)
+skew(z2$Number_of_Vehicles)
+skew(z2$Vehicle_Age)
+skew(z2$Losses)
+z2$Losses<-log(z2$Losses)
+#View(z2)
+######to eliminates skewness
+z2$nlosses<-sqrt(z2$Losses)
+skew(z2$nlosses)
+z2<-subset(z2,select = -c(Losses))
+#View(z2)
+#plot(z2$Age,z2$Losses,ylim = c(0,1000))
+#plot(z2$Years_of_Driving_Experience,z2$Losses)
+#plot(z2$Number_of_Vehicles,z2$Losses)
+#table(z2$Number_of_Vehicles)
+#plot(z2$Vehicle_Age,z2$Losses)
+###########modelling
+m1<-lm(Losses~.,data = z2)
+m1
+summary(m1)
+library(car)
+vif(m1)
+#########data partition
+library(caret)
+index<-createDataPartition(z2$nlosses,p=0.70,list=F)
+train<-z2[index,]
+test<-z2[-index,]
+dim(test)
+dim(train)
+m2<-lm(Losses~.,data = train)
+m2
+summary(m2)
+vif(m2)
+###########regression line selection
+library(psych)
+backward<-step(m2,direction="backward")
+#######testing
+names(z2)
+test1<-subset(z2,select = -c(Losses,Number_of_Vehicles))
+pred<-predict(backward,newdata = test1)
+View(pred)
+results<-data.frame(original=z2$Losses,estimated=pred)
+View(results)
+results$original<-exp(results$original)
+results$estimated<-exp(results$estimated)
+cor(results$original,results$estimated)
